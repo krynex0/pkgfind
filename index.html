@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>pkgfind — пошук пакетів Arch Linux &amp; AUR</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+
+<body>
+    <div class="topbar">
+        <div class="brand">
+            <div class="brand-mark">$_</div>
+            <div class="brand-name">pkgfind<span>.dev</span></div>
+        </div>
+    </div>
+    <div class="hero">
+        <div class="prompt-wrap">
+            <div class="prompt-bar"> <span class="prompt-label">[user@archlinux ~]$</span> <input id="searchInput" type="text"
+                autofocus autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+    <div class="meta-row">
+        <div class="src-status" id="srcStatus"> <span><span class="dot" id="dotOfficial"></span>official repos</span>
+            <span><span class="dot" id="dotAur"></span>AUR</span>
+        </div>
+        <div id="resultCount"></div>
+    </div>
+    <div class="results" id="results">
+        <div class="empty-state">
+            <div class="big">$ _</div>
+        </div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
