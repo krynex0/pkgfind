@@ -26,7 +26,7 @@ function updateCaret() {
 // ===== state =====
 let requestSeq = 0;
 
-// режим пошуку: 'official' -> 'aur' -> 'both' -> 'official' ...
+// Search mode: official -> aur -> both
 const SEARCH_MODES = ['official', 'aur', 'both'];
 let searchMode = 'official';
 
@@ -40,7 +40,7 @@ promptLabel.addEventListener('click', () => {
   searchMode = SEARCH_MODES[(currentIndex + 1) % SEARCH_MODES.length];
   applySearchModeStyle();
 
-  // якщо вже є введений запит — одразу перезапускаємо пошук у новому режимі
+  // Re-run search immediately if a query is already present.
   if (searchInput.value.trim().length >= 2) {
     doSearch(searchInput.value);
   }
@@ -59,7 +59,7 @@ function escapeHtml(s) {
 function officialCard(pkg) {
   const installCmd = `sudo pacman -S ${pkg.pkgname}`;
   const installedBadge = pkg.installed
-    ? '<span class="badge badge-installed">встановлено</span>'
+    ? '<span class="badge badge-installed">installed</span>'
     : '';
 
   return `
@@ -72,11 +72,11 @@ function officialCard(pkg) {
         </div>
         <span class="badge official">${escapeHtml(pkg.repo)}</span>
       </div>
-      <div class="pkg-desc">${escapeHtml(pkg.pkgdesc) || 'Без опису.'}</div>
+      <div class="pkg-desc">${escapeHtml(pkg.pkgdesc) || 'No description.'}</div>
       <div class="card-bottom">
         <div class="card-actions">
           <div class="pkg-links">
-            <a href="https://archlinux.org/packages/${encodeURIComponent(pkg.repo)}/${encodeURIComponent(pkg.pkgname)}/" target="_blank" rel="noopener">сторінка ↗</a>
+            <a href="https://archlinux.org/packages/${encodeURIComponent(pkg.repo)}/${encodeURIComponent(pkg.pkgname)}/" target="_blank" rel="noopener">Details ↗</a>
           </div>
           <div class="install-row">
             <span class="install-cmd"><span class="flag">sudo pacman -S</span> ${escapeHtml(pkg.pkgname)}</span>
@@ -90,7 +90,7 @@ function officialCard(pkg) {
 function aurCard(pkg) {
   const installCmd = `yay -S ${pkg.pkgname}`;
   const installedBadge = pkg.installed
-    ? '<span class="badge badge-installed">встановлено</span>'
+    ? '<span class="badge badge-installed">installed</span>'
     : '';
 
   return `
@@ -103,7 +103,7 @@ function aurCard(pkg) {
         </div>
         <span class="badge aur">${escapeHtml(pkg.repo)}</span>
       </div>
-      <div class="pkg-desc">${escapeHtml(pkg.pkgdesc) || 'Без опису.'}</div>
+      <div class="pkg-desc">${escapeHtml(pkg.pkgdesc) || 'No description.'}</div>
       <div class="card-bottom">
         <div class="card-actions">
           <div class="pkg-links">
@@ -159,7 +159,9 @@ async function doSearch(query) {
   const mySeq = ++requestSeq;
 
   if (q.length === 0) {
-    renderEmpty('Введи назву пакету вище — наприклад <b class="hl">htop</b>, <b class="hl">firefox</b> або <b class="hl">yay</b>');
+    renderEmpty(
+      'Search for a package — for example <b class="hl">htop</b>, <b class="hl">firefox</b> or <b class="hl">yay</b>'
+    );
     resultCountEl.textContent = '';
     dotOfficial.className = 'dot';
     dotAur.className = 'dot';
@@ -167,11 +169,11 @@ async function doSearch(query) {
   }
 
   if (q.length < 2) {
-    renderEmpty('Мінімум 2 символи для пошуку');
+    renderEmpty('Enter at least 2 characters');
     return;
   }
 
-  resultsEl.innerHTML = `<div class="empty-state">шукаю "${escapeHtml(q)}"<span class="cursor-blink"></span></div>`;
+  resultsEl.innerHTML = `<div class="empty-state">Searching for "${escapeHtml(q)}"<span class="cursor-blink"></span></div>`;
 
   const wantOfficial = searchMode === 'official' || searchMode === 'both';
   const wantAur = searchMode === 'aur' || searchMode === 'both';
@@ -186,12 +188,12 @@ async function doSearch(query) {
   if (!wantAur) dotAur.className = 'dot';
 
   if (official.length + aur.length === 0) {
-    renderEmpty(`Нічого не знайдено для "${escapeHtml(q)}"`, 'спробуй іншу назву або перевір орфографію');
+    renderEmpty(`No packages found for "${escapeHtml(q)}"`, 'Check the package name or try another search.');
     resultCountEl.textContent = '';
     return;
   }
 
-  resultCountEl.textContent = `${official.length} офіційних · ${aur.length} AUR`;
+  resultCountEl.textContent = `${official.length} Official · ${aur.length} AUR`;
   resultsEl.innerHTML = official.map(officialCard).join('') + aur.map(aurCard).join('');
 }
 
