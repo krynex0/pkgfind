@@ -11,27 +11,26 @@ struct Package {
 }
 
 // ==== parse "pacman -Ss <query>" output into Packages ====
-// Формат виводу:
+// Output format:
 //   extra/firefox 143.0-1 [installed]
 //       Mozilla Firefox web browser
-// Непарні рядки (без відступу) — заголовок пакету, парні (з відступом) — опис.
+// Non-indented lines are package headers, indented lines are descriptions.
 fn parse_search_output(raw: &str) -> Vec<Package> {
     let mut packages = Vec::new();
     let mut lines = raw.lines().peekable();
 
     while let Some(line) = lines.next() {
-        // рядки з описом/порожні пропускаємо тут — вони обробляються нижче,
-        // одразу після відповідного заголовка
+        // skip description/empty lines here — they're consumed below,
+        // right after their matching header
         if line.starts_with(' ') || line.starts_with('\t') || line.trim().is_empty() {
             continue;
         }
 
-        // yay/pacman дають рядок installed по-різному: pacman -Ss пише "[installed]",
-        // локалізований yay може писати "(Встановлено)" — перевіряємо обидва варіанти
-        let installed = line.contains("[installed]") || line.contains("(Встановлено)");
+        // pacman -Ss marks installed packages with "[installed]"
+        let installed = line.contains("[installed]");
 
-        // формат заголовка: "repo/name version [голоси/популярність] [час] [installed]"
-        // (yay додає додаткові дужки після версії — pacman цього не робить)
+        // header format: "repo/name version [votes/popularity] [age] [installed]"
+        // (yay appends extra parentheses after the version — pacman does not)
         let Some(slash_pos) = line.find('/') else { continue };
         let repo = line[..slash_pos].to_string();
         let after_slash = &line[slash_pos + 1..];
@@ -39,7 +38,8 @@ fn parse_search_output(raw: &str) -> Vec<Package> {
         let Some(name_end) = after_slash.find(' ') else { continue };
         let pkgname = after_slash[..name_end].to_string();
 
-        // версія — тільки наступне "слово" після назви, решта рядка (голоси, дата, installed) ігнорується
+        // version is only the next "word" after the name; the rest of the line
+        // (votes, age, installed marker) is ignored
         let rest = after_slash[name_end + 1..].trim_start();
         let version_end = rest.find(' ').unwrap_or(rest.len());
         let version = rest[..version_end].to_string();
@@ -49,11 +49,11 @@ fn parse_search_output(raw: &str) -> Vec<Package> {
             None => (version.clone(), String::new()),
         };
 
-        // наступний рядок (якщо є і починається з відступу) — це опис
+        // the next line (if indented) is the description
         let pkgdesc = match lines.peek() {
             Some(next) if next.starts_with(' ') || next.starts_with('\t') => {
                 let desc = next.trim().to_string();
-                lines.next(); // споживаємо рядок опису
+                lines.next(); // consume the description line
                 desc
             }
             _ => String::new(),
@@ -81,10 +81,10 @@ fn search_official(query: String) -> Result<Vec<Package>, String> {
         .arg("-Ss")
         .arg(&query)
         .output()
-        .map_err(|e| format!("не вдалося запустити pacman -Ss: {e}"))?;
+        .map_err(|e| format!("failed to run pacman -Ss: {e}"))?;
 
-    // pacman повертає ненульовий код виходу, якщо нічого не знайдено —
-    // це не помилка виконання, просто порожній результат
+    // pacman exits non-zero when nothing is found — that's not a runtime
+    // error, just an empty result
     if !output.status.success() {
         return Ok(Vec::new());
     }
@@ -105,10 +105,10 @@ fn search_aur(query: String) -> Result<Vec<Package>, String> {
         .arg("--aur")
         .arg(&query)
         .output()
-        .map_err(|e| format!("не вдалося запустити yay: {e} (можливо yay не встановлено)"))?;
+        .map_err(|e| format!("failed to run yay: {e} (yay may not be installed)"))?;
 
-    // yay повертає ненульовий код виходу, якщо нічого не знайдено —
-    // це не помилка виконання, просто порожній результат
+    // yay exits non-zero when nothing is found — that's not a runtime
+    // error, just an empty result
     if !output.status.success() {
         return Ok(Vec::new());
     }
@@ -116,8 +116,8 @@ fn search_aur(query: String) -> Result<Vec<Package>, String> {
     let text = String::from_utf8_lossy(&output.stdout);
     let mut packages = parse_search_output(&text);
 
-    // сортуємо за популярністю неможливо (yay -Ss не дає числа тут),
-    // лишаємо порядок видачі yay і просто обрізаємо
+    // can't sort by popularity here (yay -Ss doesn't expose a number for it),
+    // keep yay's own result order and just truncate
     packages.truncate(25);
 
     Ok(packages)
